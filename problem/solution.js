@@ -1,24 +1,35 @@
 var fs = require('fs');
 main();
 
-
+// Create a new Car at (0,0)
 function getNewCar(){
     return {x:0, y:0, freeAt:0, rides_completed:[]};
 }
 
+//rideArray is [xi,xf,yi,yf,startTime,endTime]
+function getNewRide(index,rideArray){
+    return{
+        i: index,
+        xi: rideArray[0],
+        yi: rideArray[1],
+        xf: rideArray[2],
+        yf: rideArray[3],
+        start: rideArray[4],
+        end: rideArray[5],
+        distance: getDistance(rideArray[0],rideArray[1],rideArray[2],rideArray[3])
+    }
+}
+
+//Calculate the distance between P1 and P2
 function getDistance(x1,y1,x2,y2){
     return Math.abs(x1-x2) + Math.abs(y1-y2);
 }
-
-function orderRides(ride1,ride2){
+//Compare rides by start Time. If start time is equal, compare by ride distance.
+function compareRides(ride1,ride2){
     return ( (ride1.start === ride2.start) ? (ride2.distance - ride1.distance) : (ride1.start - ride2.start));
 }
 
-function orderRidesByDistance(ride1,ride2){
-    return (ride1.xi + ride1.yi) - (ride2.xi + ride2.yi);
-}
-
-
+//Get array of cars that can process a given ride and finish it until the ride end time.
 function getAvailableCars(ride,allCars){
     let availableCars = [];
     allCars.forEach(car => {
@@ -30,9 +41,10 @@ function getAvailableCars(ride,allCars){
     return availableCars;
 }
 
+//Get the car that is closest to the beggining of the given ride.
 function getClosestCar(ride,availableCars){
     if (availableCars != null && availableCars.length > 0){
-        let minDistance = 999999999999999;
+        let minDistance = Number.MAX_SAFE_INTEGER;
         let closestCarIndex = -1;
         availableCars.forEach((car,i) => {
             let distance = getDistance(ride.xi,ride.yi,car.x,car.y);
@@ -46,14 +58,20 @@ function getClosestCar(ride,availableCars){
     return null;
 }
 
+//Get a car that can get bonus points or null if there is none.
 function getBonusCar(ride,availableCars){
+    let possibleBonusCar = null;
     for(car of availableCars){
-        let distance = Math.abs(ride.xi - car.x) + Math.abs(ride.yi - car.y);
-        if (ride.start >= car.freeAt + distance){
+        let distanceToRide = Math.abs(ride.xi - car.x) + Math.abs(ride.yi - car.y);
+        let arrivalTime = car.freeAt + distanceToRide;
+        if (ride.start === arrivalTime){
             return car;
         }
+        else if (possibleBonusCar == null && (ride.start > arrivalTime)){ //car will wait
+            possibleBonusCar = car;
+        }
     }
-    return null;
+    return possibleBonusCar; //might be null
 }
 
 function assignRidesToCars(rides,cars){
@@ -71,7 +89,7 @@ function assignRidesToCars(rides,cars){
         }
     });
 }
-
+//Process data to output to a file.
 function output(cars){
     return cars.map(car => {
         return [car.rides_completed.length, ...car.rides_completed]
@@ -79,6 +97,7 @@ function output(cars){
 }
 
 function assignRideToCar(ride,car){
+
     let distanceTraveled = getDistance(ride.xi,ride.yi,car.x,car.y) + ride.distance;
     car.x = ride.xf;
     car.y = ride.yf;
@@ -86,7 +105,7 @@ function assignRideToCar(ride,car){
     car.freeAt = Math.max(ride.start + ride.distance, car.freeAt + distanceTraveled);
 }
 
-function program(file){
+function solve(file){
     let rides = [];
     let cars = [];
     let lines = file.split("\n");
@@ -97,27 +116,18 @@ function program(file){
     let maxSteps = firstLine[5];
     let ridesDescription = lines.slice(1);
     ridesDescription.forEach((rideLine,index) =>{
-        let rideArray = rideLine.split(" ");
-        rideDistance = getDistance(parseInt(rideArray[0]),parseInt(rideArray[1]),parseInt(rideArray[2]),parseInt(rideArray[3]));
-        rides.push({
-            i: index,
-            xi:parseInt(rideArray[0]),
-            yi:parseInt(rideArray[1]),
-            xf:parseInt(rideArray[2]),
-            yf:parseInt(rideArray[3]),
-            start:parseInt(rideArray[4]),
-            end: parseInt(rideArray[5]),
-            distance: rideDistance
-        })
+        let rideArray = rideLine.split(" ").map(elem => parseInt(elem));
+        rides.push(getNewRide(index,rideArray));
     })
     for(let i = 0; i < numCars; i++){
         cars.push(getNewCar());
     }
-    rides.sort(orderRides);
+    rides.sort(compareRides);
     assignRidesToCars(rides,cars);
     return output(cars);
 
 }
+
 function writeFile(filename,data){
     fs.writeFile(filename, data, function(err) {
         if(err) {
@@ -130,8 +140,8 @@ function writeFile(filename,data){
 function main(){
     let fileNames = ["a_example.in","b_should_be_easy.in","c_no_hurry.in","d_metropolis.in","e_high_bonus.in"];
     fileNames.forEach(filename => {
-        let file = fs.readFileSync(filename, 'utf8');
-        let output = program(file.trim());
-        writeFile(filename + ".final.out",output);
+        let file = fs.readFileSync("inputs/" + filename, 'utf8');
+        let output = solve(file.trim());
+        writeFile("./outputs/" + filename + ".out",output);
     })
 }
