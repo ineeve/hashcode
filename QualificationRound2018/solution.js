@@ -74,6 +74,7 @@ function getBonusCar(ride,availableCars){
     return possibleBonusCar; //might be null
 }
 
+//Try to assign a car to each ride.
 function assignRidesToCars(rides,cars){
     rides.forEach(ride =>{
         let bestCar = null;
@@ -96,8 +97,8 @@ function output(cars){
     }).join('\r\n').replace(/,/g,' ');
 }
 
+//update a car with a given ride
 function assignRideToCar(ride,car){
-
     let distanceTraveled = getDistance(ride.xi,ride.yi,car.x,car.y) + ride.distance;
     car.x = ride.xf;
     car.y = ride.yf;
@@ -105,15 +106,12 @@ function assignRideToCar(ride,car){
     car.freeAt = Math.max(ride.start + ride.distance, car.freeAt + distanceTraveled);
 }
 
+//read file, create rides and cars, assign rides to cars and output them.
 function solve(file){
     let rides = [];
     let cars = [];
     let lines = file.split("\n");
-    let firstLine = lines[0].split(" ");
-    let numCars = firstLine[2];
-    let numRides = firstLine[3];
-    let bonus = firstLine[4];
-    let maxSteps = firstLine[5];
+    let numCars = lines[0].split(" ")[2];
     let ridesDescription = lines.slice(1);
     ridesDescription.forEach((rideLine,index) =>{
         let rideArray = rideLine.split(" ").map(elem => parseInt(elem));
@@ -127,7 +125,7 @@ function solve(file){
     return output(cars);
 
 }
-
+// Asynchronously writes data to a file, replacing the file if it already exists.
 function writeFile(filename,data){
     fs.writeFile(filename, data, function(err) {
         if(err) {
